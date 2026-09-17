@@ -28,73 +28,96 @@ interface Product {
     origin: string;
 }
 
-interface ProductsFilters {
-    search?: string;
-    colors?: string;
-    sizes?: string;
-    categories?: string;
-    materials?: string;
-    origins?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sort?: string;
-}
-
-export async function getProducts(filters: ProductsFilters) {
-    const values: (string | number)[] = [];
+export async function getProducts(params) {
     const conditions: string[] = [];
+    const values: (string | number)[] = [];
 
-    if(filters.search) {
-        values.push(filters.search)
-        conditions.push(`(products.name ILIKE '%' || $${values.length} || '%'
-           OR products.subtitle ILIKE '%' || $${values.length} || '%'
-           OR categories.name ILIKE '%' || $${values.length} || '%')`)
-    }
+    if (params.search) {
+        values.push(params.search);
 
-    if(filters.colors) {
-        values.push(filters.colors)
         conditions.push(`
-            product_variants.color = $${values.length}
+            (
+                products.name ILIKE '%' || $${values.length} || '%'
+                OR products.subtitle ILIKE '%' || $${values.length} || '%'
+                OR categories.name ILIKE '%' || $${values.length} || '%'
+            )
         `);
     }
 
-    if(filters.sizes) {
-        values.push(filters.sizes)
+    if (params.color?.length) {
+        const placeholders = params.color.map((color) => {
+            values.push(color);
+            return `$${values.length}`;
+        });
+
         conditions.push(`
-            product_variants.size = $${values.length}
+            product_variants.color IN (${placeholders.join(", ")})
         `);
     }
 
-    if(filters.categories) {
-        values.push(filters.categories)
+    if (params.size?.length) {
+        const placeholders = params.size.map((size) => {
+            values.push(size);
+            return `$${values.length}`;
+        });
+
         conditions.push(`
-            categories.name = $${values.length}
+            product_variants.size IN (${placeholders.join(", ")})
         `);
     }
 
-    if(filters.materials) {
-        values.push(filters.materials)
+    if (params.category?.length) {
+        const placeholders = params.category.map((category) => {
+            values.push(category);
+            return `$${values.length}`;
+        });
+
         conditions.push(`
-            products.material = $${values.length}
+            categories.name IN (${placeholders.join(", ")})
         `);
     }
 
-    if(filters.origins) {
-        values.push(filters.origins)
+    if (params.material?.length) {
+        const placeholders = params.material.map((material) => {
+            values.push(material);
+            return `$${values.length}`;
+        });
+
         conditions.push(`
-            products.origin = $${values.length}
+            products.material IN (${placeholders.join(", ")})
         `);
     }
 
-    if(filters.minPrice !== undefined) {
-        values.push(filters.minPrice)
+    if (params.origin?.length) {
+        const placeholders = params.origin.map((origin) => {
+            values.push(origin);
+            return `$${values.length}`;
+        });
+
+        conditions.push(`
+            products.origin IN (${placeholders.join(", ")})
+        `);
+    }
+
+    if (params.gender) {
+        values.push(params.gender);
+
+        conditions.push(`
+            genders.name = $${values.length}
+        `);
+    }
+
+    if (params.minPrice !== undefined) {
+        values.push(params.minPrice);
+
         conditions.push(`
             products.price >= $${values.length}
         `);
     }
 
-    if(filters.maxPrice !== undefined) {
-        values.push(filters.maxPrice)
+    if (params.maxPrice !== undefined) {
+        values.push(params.maxPrice);
+
         conditions.push(`
             products.price <= $${values.length}
         `);
@@ -107,9 +130,9 @@ export async function getProducts(filters: ProductsFilters) {
 
     let orderBy = "products.id";
 
-    if (filters.sort === "high") {
+    if (params.sort === "asc") {
         orderBy = "products.price ASC";
-    } else if (filters.sort === "low") {
+    } else if (params.sort === "desc") {
         orderBy = "products.price DESC";
     }
 
@@ -130,24 +153,63 @@ export async function getProducts(filters: ProductsFilters) {
             ON product_images.product_id = products.id
         LEFT JOIN genders 
             ON genders.id = products.gender_id
-         ${whereClause}
+        ${whereClause}
         GROUP BY 
             products.id,
             products.name,
             products.price,
             genders.name
-
         ORDER BY ${orderBy};
     `;
 
     try {
         const result = await db.query<Product>(query, values);
 
-        if (result.rows.length === 0) {
-            return [];
+        return result.rows;
+    } catch (error) {
+        console.error("Error executing query:", error);
+        throw error;
+    }
+}
+
+export async function getProductInfo() {
+    const query = `
+        SELECT
+            ARRAY_AGG(DISTINCT products.price) AS price,
+            ARRAY_AGG(DISTINCT products.material) AS material,
+            ARRAY_AGG(DISTINCT products.origin) AS origin,
+            ARRAY_AGG(DISTINCT categories.name) AS category,
+            ARRAY_AGG(DISTINCT genders.name) AS gender,
+            ARRAY_AGG(DISTINCT product_variants.size) AS size,
+            ARRAY_AGG(DISTINCT product_variants.color) AS color
+        FROM products
+        JOIN categories
+            ON products.category_id = categories.id
+        JOIN genders
+            ON products.gender_id = genders.id
+        JOIN product_variants
+            ON product_variants.product_id = products.id
+    `;
+
+    try {
+        const productInfo = await db.query(query);
+
+        if (productInfo.rows.length === 0) {
+            return null;
         }
 
-        return result.rows;
+        const row = productInfo.rows[0];
+
+        return {
+            price: row.price,
+            color: row.color,
+            size: row.size,
+            category: row.category,
+            material: row.material,
+            origin: row.origin,
+            gender: row.gender
+        };
+
     } catch (error) {
         console.error("Error executing query:", error);
         throw error;

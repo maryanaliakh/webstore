@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
 import Header from "./Header.tsx";
 import {FiltersComponent} from './Filters.tsx'
-import type {RootState} from "../../store";
+import type {RootState} from "../store";
 import {connect} from "react-redux";
 import type {Action, ThunkDispatch} from "@reduxjs/toolkit";
 import {fetchProductsThunk} from "../thunks/products.ts";

@@ -1,8 +1,9 @@
-import type {RootState} from "../../store";
+import type {RootState} from "../store";
 import {createSelector} from "reselect";
 import {getSearchParam, getSearchParams} from "../common/helpers.ts";
-import type {ProductFilters} from "../../store/product/types.ts";
-import {toInteger} from "lodash";
+import type {ProductFilters} from "../store/product/types.ts";
+import * as _ from "lodash";
+import {ProductSort} from "../store/product/types.ts";
 
 export const searchSelector = (state: RootState) => state.router.location.search
 
@@ -52,7 +53,7 @@ export const minPriceParamSelector = createSelector(
     searchSelector,
     (search) => {
         const result = getSearchParam(search, 'minPrice')
-        return result ? toInteger(result) : undefined
+        return result ? _.toInteger(result) : 0
     }
 )
 
@@ -60,7 +61,7 @@ export const maxPriceParamSelector = createSelector(
     searchSelector,
     (search) => {
         const result = getSearchParam(search, 'maxPrice')
-        return result ? toInteger(result) : undefined
+        return result ? _.toInteger(result) : 500 //from db
     }
 )
 
@@ -69,6 +70,17 @@ export const genderParamSelector = createSelector(
     (search) => {
         const result = getSearchParam(search, 'gender')
         if (result === 'men' || result === 'women') {
+            return result;
+        }
+        return undefined
+    }
+)
+
+export const sortParamSelector  = createSelector(
+    searchSelector,
+    (search) => {
+        const result = getSearchParam(search, 'sort')
+        if (result === 'asc' || result === 'desc') {
             return result;
         }
         return undefined
@@ -84,7 +96,8 @@ export const productFilterSelector = createSelector([
         originParamSelector,
         minPriceParamSelector,
         maxPriceParamSelector,
-        genderParamSelector],
+        genderParamSelector,
+        sortParamSelector],
     (q, color, size, category, material, origin, minPrice, maxPrice, gender): ProductFilters => ({
         q, color, size, category, material, origin, minPrice, maxPrice, gender
     })

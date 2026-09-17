@@ -1,3 +1,6 @@
+import {ProductFilters, ProductSort} from "../store/product/types.ts";
+import * as _ from "lodash";
+
 export async function getProduct (param: string) {
     try {
         const response = await fetch(`http://localhost:3000/product/${param}`);
@@ -15,10 +18,49 @@ export async function getProduct (param: string) {
     }
 }
 
-export async function getProducts (query: string) {
+export async function getProducts(filters: ProductFilters, sort: ProductSort) {
     try {
+        const params = new URLSearchParams();
+
+        if (filters.q !== undefined) {
+            params.set("q", filters.q);
+        }
+
+        filters.color.forEach((color) => {
+            params.append("color", color);
+        });
+
+        filters.size.forEach((size) => {
+            params.append("size", size);
+        });
+
+        filters.category.forEach((category) => {
+            params.append("category", category);
+        });
+
+        filters.material.forEach((material) => {
+            params.append("material", material);
+        });
+
+        filters.origin.forEach((origin) => {
+            params.append("origin", origin);
+        });
+
+        params.set("minPrice", _.toString(filters.minPrice));
+        params.set("maxPrice", _.toString(filters.maxPrice));
+
+        if (filters.gender !== undefined) {
+            params.set("gender", filters.gender);
+        }
+
+        if (sort !== undefined) {
+            params.set("sort", sort);
+        }
+
+        console.log(params.toString());
+
         const response = await fetch(
-            `http://localhost:3000/product/search?q=${encodeURIComponent(query || "")}`
+            `http://localhost:3000/products?${params.toString()}`
         );
 
         if (!response.ok) {

@@ -24,7 +24,7 @@ export interface ProductFilters {
 }
 
 
-export type ProductSort = 'high' | 'low';
+export type ProductSort = 'asc' | 'desc';
 
 export const LOAD_PRODUCTS = 'PRODUCTS/LOAD'
 export const DELETE_PRODUCTS = 'PRODUCTS/DELETE'

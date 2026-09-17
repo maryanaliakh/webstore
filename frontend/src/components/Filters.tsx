@@ -1,9 +1,10 @@
 import {useEffect, useMemo, useState} from "react";
-import type {RootState} from "../../store";
-import {colorParamSelector, productFilterSelector, searchSelector} from "../selectors/products.ts";
+import type {RootState} from "../store";
+import {productFilterSelector, searchSelector, sortParamSelector} from "../selectors/products.ts";
 import type {Action, ThunkDispatch} from "@reduxjs/toolkit";
 import {connect} from "react-redux";
-import {modifyUrlThunk} from "../thunks/common.ts";
+import {clearSearchThunk, modifyUrlThunk} from "../thunks/common.ts";
+import * as _ from "lodash"
 
 interface ShowFiltersProps {
     open: boolean;
@@ -14,16 +15,18 @@ const mapStateToProps = (state: RootState) => ({
     products: state.product.data,
     search: searchSelector(state),
     filters: productFilterSelector(state),
+    sort: sortParamSelector(state)
 })
 
 const mapDispatchToProps = (dispatch: ThunkDispatch<RootState, void, Action>) => ({ //action creator bindings
-    onUpdate: (type: 'add' | 'delete', key: string, value?: string) => {
-        dispatch(modifyUrlThunk(type, key, value))
-    }
+    onUpdate: (key: string, value: string | string[]) => dispatch(modifyUrlThunk(key, value)),
+    onClear: () => dispatch(clearSearchThunk())
 })
 
 type FiltersProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps> & ShowFiltersProps
-function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
+function Filters({filters, sort, open, onClose, onUpdate, onClear}: FiltersProps) {
+     const [price, setPrice] = useState({min: 0, max: 500})
+
         useEffect(() => {
             document.body.style.overflow = open ? "hidden" : "";
 
@@ -32,11 +35,22 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
             };
         }, [open])
 
-        const colors = useMemo(() => filters.color, [filters.color])
 
-        useEffect(() => {
-            console.log(colors)
-        }, [colors]);
+    const updateFiltersPrice = useMemo(
+        () =>
+            _.debounce(() => {
+                onUpdate("minPrice", price.min > 0 ? _.toString(price.min) : "");
+                onUpdate("maxPrice", price.max < 500 ? _.toString(price.max) : "");
+            }, 400),
+        [price.min, price.max]
+    );
+
+    useEffect(() => {
+        updateFiltersPrice();
+
+        return () => updateFiltersPrice.cancel();
+    }, [updateFiltersPrice]);
+
 
         return (
             <>
@@ -72,11 +86,10 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                 SELECTED FILTERS
                             </h6>
 
-                            <button
-                                type="button"
-                                className="btn p-0 text-muted"
-
-                            >
+                            <button type="button" className="btn p-0 text-muted" onClick={() => {
+                                onClear()
+                                setPrice({min: 0, max: 500})
+                            } }>
                                 <small>CLEAR ALL</small>
                             </button>
 
@@ -84,15 +97,22 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
 
                         <div className="d-flex flex-wrap gap-2">
 
-                            {/*// <button*/}
-                            {/*//     key={`${key}-${value}`}*/}
-                            {/*//     type="button"*/}
-                            {/*//     className="btn btn-light rounded-1 d-flex align-items-center gap-2"*/}
-                            {/*//     onClick={() => removeFilter(key as keyof Filters, value)}*/}
-                            {/*// >*/}
-                            {/*//     <small>{value}</small>*/}
-                            {/*//     <i className="bi bi-x"></i>*/}
-                            {/*// </button>*/}
+                            {Object.entries(filters).map(([key, values]) => {
+                                if (Array.isArray(values)) {
+                                    return values.map(value => (
+                                        <div key={`${key}-${value}`}>
+                                            <button className="btn btn-light rounded-1 d-flex align-items-center gap-2" type="button" onClick={() => {
+                                                onUpdate(key, _.without(values, value))
+                                            }}>
+                                                <small>{value}</small>
+                                                <i className="bi bi-x"></i>
+                                            </button>
+                                        </div>
+                                    ));
+                                }
+
+                                return null;
+                            })}
 
                         </div>
 
@@ -111,24 +131,24 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                 <input
                                     type="radio"
                                     name="sort"
-                                    value="low"
-                                    // checked={sortBy === "low"}
+                                    value="desc"
+                                    checked={sort === "desc"}
                                     className="me-2"
-                                    // onChange={() => updateFilter('low')}
+                                    onChange={(e) => onUpdate('sort', e.target.value)}
                                 />
-                                Price: low to high
+                                Price: high to low
                             </label>
 
                             <label>
                                 <input
                                     type="radio"
                                     name="sort"
-                                    value="high"
-                                    // checked={sortBy === "high"}
+                                    value="asc"
+                                    checked={sort === "asc"}
                                     className="me-2"
-                                    // onChange={() => setSortBy('high')}
+                                    onChange={(e) => onUpdate('sort', e.target.value)}
                                 />
-                                Price: high to low
+                                Price: low to high
                             </label>
 
                         </div>
@@ -145,11 +165,11 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                         <div className="d-flex justify-content-between mb-3">
 
                             <small>
-                                {filters.minPrice || "0"} zł
+                                {price.min || "0"} zł
                             </small>
 
                             <small>
-                                {filters.maxPrice || "500"} zł
+                                {price.max || "500"} zł
                             </small>
 
                         </div>
@@ -166,27 +186,31 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                             <input
                                 type="range"
                                 className="thumb thumb--zindex-3"
-                                min="0"
-                                max="500"
-                                value={filters.minPrice}
-                                onChange={(e) => {
-                                    const value = (e.target.value).toString();
-                                    if (value <= filters.maxPrice) {
-                                        onUpdate('add', 'minPrice', value)
+                                min={0}
+                                max={500}
+                                value={price.min}
+                                onChange={e => {
+                                    if(e.target.value < price.max) {
+                                        setPrice({
+                                            ...price,
+                                            min: _.toInteger(e.target.value)
+                                        });
                                     }
                                 }}
                             />
 
                             <input
                                 type="range"
-                                className="thumb thumb--zindex-4"
-                                min="0"
-                                max="500"
-                                value={filters.maxPrice}
-                                onChange={(e) => {
-                                    const value = (e.target.value).toString();
-                                    if (value >= filters.minPrice) {
-                                        onUpdate('add', 'maxPrice', value)
+                                className="thumb thumb--zindex-3"
+                                min={0}
+                                max={500}
+                                value={price.max}
+                                onChange={e => {
+                                    if(e.target.value > price.min) {
+                                        setPrice({
+                                            ...price,
+                                            max: _.toInteger(e.target.value)
+                                        });
                                     }
                                 }}
                             />
@@ -213,7 +237,11 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                         type="checkbox"
                                         checked={filters.color.includes(color)}
                                         value={color}
-                                        onChange={() => onUpdate('add', 'color', color)}
+                                        onChange={() => {
+                                            filters.color.includes(color) ?
+                                                onUpdate('color', _.without(filters.color, color))
+                                            : onUpdate('color', _.union(filters.color, [color]))
+                                        }}
                                     />
 
                                     {color}
@@ -243,7 +271,10 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                             ? "btn-dark"
                                             : "btn-light"
                                     }`}
-                                    onChange={() => onUpdate('add', 'size', size)}
+                                    onClick={() =>  filters.size.includes(size) ?
+                                        onUpdate('size', _.without(filters.size, size))
+                                        : onUpdate('size', _.union(filters.size, [size]))
+                                    }
                                 >
                                     {size}
                                 </button>
@@ -280,7 +311,10 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                         type="checkbox"
                                         className="me-2"
                                         checked={filters.category.includes(category)}
-                                        onChange={() => onUpdate('add', 'category', category)}
+                                        value={category}
+                                        onChange={() => filters.category.includes(category) ?
+                                            onUpdate('category', _.without(filters.category, category))
+                                            : onUpdate('category', _.union(filters.category, [category]))}
                                     />
 
                                     {category}
@@ -317,7 +351,10 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                         type="checkbox"
                                         className="me-2"
                                         checked={filters.material.includes(material)}
-                                        onChange={() => onUpdate('add', 'material', material)}
+                                        value={material}
+                                        onChange={() => filters.material.includes(material) ?
+                                            onUpdate('material', _.without(filters.material, material))
+                                            : onUpdate('material', _.union(filters.material, [material]))}
                                     />
 
                                     {material}
@@ -354,7 +391,10 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                                         type="checkbox"
                                         className="me-2"
                                         checked={filters.origin.includes(origin)}
-                                        onChange={() => onUpdate('add', 'origin', origin)}
+                                        value={origin}
+                                        onChange={() => filters.origin.includes(origin) ?
+                                            onUpdate('origin', _.without(filters.origin, origin))
+                                            : onUpdate('origin', _.union(filters.origin, [origin]))}
                                     />
 
                                     {origin}
@@ -364,17 +404,7 @@ function Filters({filters, open, onClose, onUpdate}: FiltersProps) {
                             ))}
 
                         </div>
-
                     </div>
-
-
-                    <button
-                        type="button"
-                        className="btn btn-dark w-100 py-3"
-                    >
-                        APPLY FILTERS
-                    </button>
-
                 </div>
             </>
         );

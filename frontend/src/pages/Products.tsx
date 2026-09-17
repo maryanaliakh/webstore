@@ -1,12 +1,14 @@
-import type {RootState} from "../../store";
-import {productFilterSelector, searchSelector} from "../selectors/products.ts";
+import type {RootState} from "../store";
+import {productFilterSelector, searchSelector, sortParamSelector} from "../selectors/products.ts";
 import type {Action, ThunkDispatch} from "@reduxjs/toolkit";
 import {fetchProductsThunk} from "../thunks/products.ts";
 import {connect} from "react-redux";
 import {useEffect, useState} from "react";
 import Header from "../components/Header.tsx";
 import {FiltersComponent} from "../components/Filters.tsx";
-import {modifyUrlThunk} from "../thunks/common.ts";
+import {clearSearchThunk, modifyUrlThunk} from "../thunks/common.ts";
+import type {ProductFilters} from "../store/product/types.ts";
+
 
 const mapStateToProps = (state: RootState) => ({
     products: state.product.data,
@@ -15,12 +17,8 @@ const mapStateToProps = (state: RootState) => ({
 })
 
 const mapDispatchToProps = (dispatch: ThunkDispatch<RootState, void, Action>) => ({ //action creator bindings
-    onFetch: () => {
-        dispatch(fetchProductsThunk())
-    },
-    onUpdate: (type: 'add' | 'delete', key: string, value?: string) => {
-        dispatch(modifyUrlThunk(type, key, value))
-    }
+    onFetch: () => dispatch(fetchProductsThunk()),
+    onUpdate: (key: string, value: string) => dispatch(modifyUrlThunk(key, value)),
 })
 
 type ProductsProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>
@@ -48,7 +46,7 @@ function Products({products, filters, onFetch, onUpdate}: ProductsProps) {
                         <button
                             type="button"
                             className={`btn p-0 pb-3 border-0 rounded-0 position-relative ${filters.gender === undefined ? "fw-semibold" : "fw-normal"}`}
-                            onClick={() => onUpdate('delete', 'gender')}
+                            onClick={() => onUpdate('gender', '')}
                         > ALL
                             {filters.gender === undefined && (
                                 <span
@@ -64,7 +62,7 @@ function Products({products, filters, onFetch, onUpdate}: ProductsProps) {
                         <button
                             type="button"
                             className={`btn p-0 pb-3 border-0 rounded-0 position-relative ${filters.gender === "women" ? "fw-semibold" : "fw-normal"}`}
-                            onClick={() => onUpdate('add', 'gender', 'women')}
+                            onClick={() => onUpdate('gender', 'women')}
                         > WOMEN
                             {filters.gender === "women" && (
                                 <span
@@ -80,7 +78,7 @@ function Products({products, filters, onFetch, onUpdate}: ProductsProps) {
                         <button
                             type="button"
                             className={`btn p-0 pb-3 border-0 rounded-0 position-relative ${filters.gender === "men" ? "fw-semibold" : "fw-normal"}`}
-                            onClick={() => onUpdate('add', 'gender', 'men')}
+                            onClick={() => onUpdate('gender', 'men')}
                         > MEN
                             {filters.gender === "men" && (
                                 <span

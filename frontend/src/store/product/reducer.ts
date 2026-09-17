@@ -1,4 +1,4 @@
-import {DELETE_PRODUCTS, LOAD_PRODUCTS, ProductsActions, ProductState} from './types'
+import {DELETE_PRODUCTS, LOAD_PRODUCTS, ProductsActions, ProductState} from './types.ts'
 
 const initialState: ProductState = {
   data: [],
