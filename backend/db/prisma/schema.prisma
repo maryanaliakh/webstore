@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model collections {
+  id       Int        @id @default(autoincrement())
+  name     String     @db.VarChar(100)
+  image_1  String?
+  image_2  String?
+  image_3  String?
+  products products[]
+}
+
+model discounts {
+  id         Int        @id @default(autoincrement())
+  name       String     @db.VarChar(100)
+  percentage Decimal    @db.Decimal(5, 2)
+  start_date DateTime   @db.Timestamp(6)
+  end_date   DateTime   @db.Timestamp(6)
+  products   products[]
+}
+
+model cart {
+  id         Int          @id @default(autoincrement())
+  user_id    Int          @unique
+  users      users        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cart_items cart_items[]
+}
+
+model cart_items {
+  id               Int              @id @default(autoincrement())
+  cart_id          Int
+  variant_id       Int
+  quantity         Int
+  cart             cart             @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_variants product_variants @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cart_id, variant_id])
+}
+
+model categories {
+  id            Int             @id @default(autoincrement())
+  name          String          @unique @db.VarChar(100)
+  image         String?
+  products      products[]
+  subcategories subcategories[]
+}
+
+model subcategories {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(100)
+  category_id Int
+  products    products[]
+  categories  categories @relation(fields: [category_id], references: [id], onDelete: NoAction)
+
+  @@unique([category_id, name], map: "subcategories_category_name_unique")
+}
+
+model favorites {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  product_id Int
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  products   products  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, product_id])
+}
+
+model genders {
+  id       Int        @id @default(autoincrement())
+  name     String     @unique @db.VarChar(20)
+  products products[]
+}
+
+model order_items {
+  id           Int      @id @default(autoincrement())
+  order_id     Int
+  variant_id   Int?
+  product_name String   @db.VarChar(150)
+  size         String   @db.VarChar(20)
+  color        String   @db.VarChar(50)
+  quantity     Int
+  price        Decimal  @db.Decimal(10, 2)
+
+  orders       orders   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product_variants product_variants? @relation(fields: [variant_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+}
+
+model orders {
+  id                  Int               @id @default(autoincrement())
+  user_id             Int?
+  status              String            @default("pending") @db.VarChar(30)
+  customer_name       String            @db.VarChar(100)
+  customer_email      String            @db.VarChar(255)
+  customer_phone      String            @db.VarChar(20)
+  shipping_option_id  Int
+  shipping_options    shipping_options  @relation(fields: [shipping_option_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shipping_method     String            @db.VarChar(100)
+  shipping_country     String?          @db.VarChar(100)
+  shipping_city        String?          @db.VarChar(100)
+  shipping_postal_code String?          @db.VarChar(20)
+  shipping_street      String?          @db.VarChar(150)
+  shipping_building    String?          @db.VarChar(30)
+  shipping_apartment   String?          @db.VarChar(30)
+  shipping_price      Decimal           @db.Decimal(10, 2)
+  pickup_point_id     String?           @db.VarChar(100)
+  pickup_point_name   String?           @db.VarChar(150)
+  store_id            String?           @db.VarChar(100)
+  store_name          String?           @db.VarChar(150)
+  payment_method      String            @db.VarChar(50)
+  subtotal            Decimal           @db.Decimal(10, 2)
+  total               Decimal           @db.Decimal(10, 2)
+  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+
+  order_items         order_items[]
+  payments            payments[]
+  users               users?        @relation(fields: [user_id], references: [id], onDelete: NoAction)
+}
+
+model payments {
+  id             Int      @id @default(autoincrement())
+  order_id       Int
+  method         String   @db.VarChar(50)
+  status         String   @default("pending") @db.VarChar(30)
+  transaction_id String?  @db.VarChar(255)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+
+  orders         orders   @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model product_images {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  color      String?  @db.VarChar(50)
+  image_url  String
+  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model product_variants {
+  id          Int           @id @default(autoincrement())
+  product_id  Int
+  size        String        @db.VarChar(20)
+  color       String        @db.VarChar(50)
+  stock       Int           @default(0)
+  cart_items  cart_items[]
+  order_items order_items[]
+  products    products      @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([product_id, size, color])
+}
+
+model products {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar(150)
+  subtitle         String?
+  price            Decimal            @db.Decimal(10, 2)
+  category_id      Int
+  gender_id        Int?
+  description      String?
+  material         String?
+  care             String?
+  origin           String?
+  subcategory_id   Int?
+  collection_id    Int?
+  discount_id      Int?
+  favorites        favorites[]
+  product_images   product_images[]
+  product_variants product_variants[]
+  categories       categories         @relation(fields: [category_id], references: [id], onDelete: NoAction)
+  collections      collections?       @relation(fields: [collection_id], references: [id], onUpdate: NoAction)
+  discounts        discounts?         @relation(fields: [discount_id], references: [id], onUpdate: NoAction)
+  genders          genders?           @relation(fields: [gender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subcategories    subcategories?     @relation(fields: [subcategory_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([subcategory_id])
+}
+
+model return_options {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
+  description String
+  price       Decimal @db.Decimal(10, 2)
+}
+
+model return_policy {
+  id          Int    @id @default(autoincrement())
+  title       String @db.VarChar(150)
+  description String
+}
+
+model shipping_options {
+  id            Int     @id @default(autoincrement())
+  name          String  @db.VarChar(100)
+  description   String
+  price         Decimal @db.Decimal(10, 2)
+  delivery_time String  @db.VarChar(100)
+
+  orders orders[]
+}
+
+model payment_methods {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique @db.VarChar(50)
+  description   String?
+  is_active     Boolean @default(true)
+  display_order Int     @default(0)
+}
+
+model users {
+  id                    Int         @id @default(autoincrement())
+  name                  String      @db.VarChar(100)
+  email                 String      @unique @db.VarChar(255)
+  password              String?     @db.VarChar(255)
+  phone                 String?     @unique @db.VarChar(20)
+  role                  String?     @default("user") @db.VarChar(20)
+  newsletter_consent    Boolean     @default(false)
+  terms_accepted        Boolean     @default(false)
+  terms_accepted_at     DateTime?   @db.Timestamp(6)
+  created_at            DateTime?   @default(now()) @db.Timestamp(6)
+
+  addresses             addresses[]
+  cart                  cart?
+  favorites             favorites[]
+  orders                orders[]
+  password_reset_tokens password_reset_tokens[]
+}
+
+model addresses {
+  id             Int      @id @default(autoincrement())
+  user_id        Int
+  name           String   @db.VarChar(100)
+  phone          String   @db.VarChar(20)
+  country        String   @db.VarChar(100)
+  city           String   @db.VarChar(100)
+  postal_code    String   @db.VarChar(20)
+  street         String   @db.VarChar(150)
+  building       String   @db.VarChar(30)
+  apartment      String?  @db.VarChar(30)
+  is_default     Boolean  @default(false)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+
+  users          users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model password_reset_tokens {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime @db.Timestamp(6)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}

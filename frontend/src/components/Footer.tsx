@@ -1,124 +1,71 @@
+import { useNavigate } from "react-router-dom";
+
 export default function Footer() {
+    const navigate = useNavigate();
+
+    const linkClass = "text-dark text-decoration-none border-0 bg-transparent p-0 fw-semibold";
+
     return (
-        <footer className="mt-5 pt-5">
-            <div className="container-fluid px-5 pb-4">
+        <footer
+            className="container-fluid border-top px-4 pt-4 pb-4"
+            style={{ borderRadius: "0 0 24px 24px", background: "#fff" }}
+        >
+            <div className="d-flex justify-content-between align-items-start flex-wrap gap-4">
 
-                <div className="row">
+                {/* Links */}
+                <div className="d-flex flex-column gap-3 small">
+                    <div className="d-flex flex-wrap gap-3 small">
+                        <button className={linkClass}  onClick={() => navigate("/products?gender=women")}>
+                            WOMEN
+                        </button>
 
-                    {/* Brand */}
-                    <div className="col-lg-4 mb-4">
-                        <h4 className="fw-bold mb-3">
-                            BUBBLE
-                        </h4>
+                        <button className={linkClass}  onClick={() => navigate("/products?gender=men")}>
+                            MEN
+                        </button>
 
-                        <p className="text-muted small mb-0">
-                            Simple. Modern. You.
-                        </p>
+                        <button className={linkClass}  onClick={() => navigate("/products")}>
+                            SHOP ALL
+                        </button>
+
+                        <button className={linkClass}  onClick={() => navigate("/favorites")}>
+                            FAVORITES
+                        </button>
                     </div>
 
-                    {/* Shop */}
-                    <div className="col-lg-3 col-md-4 mb-4">
-                        <h6 className="fw-semibold mb-3">
-                        <small>
-                            SHOP
-                        </small>
+                    <div className="d-flex flex-wrap gap-3 small">
+                        <button className={linkClass}  onClick={() => navigate("/account")}>
+                            MY ACCOUNT
+                        </button>
 
-                        </h6>
+                        <button className={linkClass} onClick={() => navigate("/cart")}>
+                            SHOPPING BAG
+                        </button>
 
-                        <div className="d-flex flex-column gap-2">
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Women
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Men
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                New arrivals
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Sale
-                            </a>
-                        </div>
+                        <button className={linkClass} onClick={() => navigate("/")}>
+                            HOME
+                        </button>
                     </div>
 
-                    {/* Help */}
-                    <div className="col-lg-3 col-md-5 mb-4">
-                        <h6 className="fw-semibold mb-3">
-                            <small>
-                            HELP
-                            </small>
-                        </h6>
-
-                        <div className="d-flex flex-column gap-2">
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Contact
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Delivery
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                Returns
-                            </a>
-
-                            <a href="#" className="text-dark text-decoration-none small">
-                                FAQ
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Follow */}
-                    <div className="col-lg-2 col-md-4 mb-4">
-                        <h6 className="fw-semibold mb-3">
-                            <small>
-                            FOLLOW US
-                            </small>
-                        </h6>
-
-                        <div className="d-flex gap-3">
-                            <a href="#" className="text-dark fs-5">
-                                <i className="bi bi-instagram"></i>
-                            </a>
-
-                            <a href="#" className="text-dark fs-5">
-                                <i className="bi bi-facebook"></i>
-                            </a>
-
-                            <a href="#" className="text-dark fs-5">
-                                <i className="bi bi-tiktok"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* Bottom */}
-                <div>
-                    <div className="d-flex justify-content-between align-items-center">
-                        <div className="d-flex gap-4">
-                            <a
-                                href="#"
-                                className="text-muted text-decoration-none small"
-                            ><small>
-                                Privacy Policy
-                            </small>
-                            </a>
-
-                            <a
-                                href="#"
-                                className="text-muted text-decoration-none small"
-                            ><small>
-                                Terms & Conditions
-                            </small>
-                            </a>
-                        </div>
+                    <div className="d-flex flex-wrap gap-3 small">
+                        <a href="#" className={linkClass} >INSTAGRAM</a>
+                        <a href="#" className={linkClass} >FACEBOOK</a>
+                        <a href="#" className={linkClass} >TIKTOK</a>
                     </div>
                 </div>
 
+                {/* Country */}
+                <div className="d-flex flex-column align-items-end gap-2 small">
+                    <div>
+                        <i className="bi bi-globe fs-6 mx-2"></i>
+                        <span className="fw-semibold small">
+                            POLAND | EUROPE
+                        </span>
+                    </div>
+
+                    <div className="fw-semibold small">
+                        © 2026 BUBBLE. ALL RIGHTS RESERVED.
+                    </div>
+                </div>
             </div>
         </footer>
     );
